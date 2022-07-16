@@ -1,80 +1,203 @@
-# 目次
-- [LAMMPSのやり方](#lammpsのやり方)
-  - [目次](#目次)
-  - [はじめに](#はじめに)
-  - [VSCodeとWindows Terminalを起動する](#vscodeとwindows-terminalを起動する)
-  - [VSCodeでコードを書く](#vscodeでコードを書く)
+# 目次 (2022年7月16日時点)
+- [目次 (2022年7月16日時点)](#目次-2022年7月16日時点)
+- [はじめに](#はじめに)
+- [WSL2とLAMMPSのセットアップ](#wsl2とlammpsのセットアップ)
+  - [wsl2のインストール](#wsl2のインストール)
+  - [LAMMPSのダウンロード](#lammpsのダウンロード)
+    - [FFMPEGのインストール](#ffmpegのインストール)
+  - [LAMMPSのビルド](#lammpsのビルド)
+  - [cudaのインストール](#cudaのインストール)
+    - [CUDA Toolkitのインストール](#cuda-toolkitのインストール)
+- [VSCodeとWindows Terminalを起動する](#vscodeとwindows-terminalを起動する)
+- [VSCodeでコードを書く](#vscodeでコードを書く)
+- [20220626 作業メモ](#20220626-作業メモ)
   - [必要なモジュールを含めてLAMMPSをビルドする](#必要なモジュールを含めてlammpsをビルドする)
-  - [20220715 作業メモ](#20220715-作業メモ)
-    - [GPUあるいはマルチスレッドの検証](#gpuあるいはマルチスレッドの検証)
-      - [実行可能ファイルのファイル名の変更方法](#実行可能ファイルのファイル名の変更方法)
-      - [KOKKOSインストール手順](#kokkosインストール手順)
-      - [実行結果](#実行結果)
-  - [TODO](#todo)
+- [20220715 作業メモ](#20220715-作業メモ)
+  - [GPUあるいはマルチスレッドの検証](#gpuあるいはマルチスレッドの検証)
+    - [実行可能ファイルのファイル名の変更方法](#実行可能ファイルのファイル名の変更方法)
+    - [KOKKOSインストール手順](#kokkosインストール手順)
+    - [`mpirun -np 16`とGPUを変更した際の実行結果](#mpirun--np-16とgpuを変更した際の実行結果)
+- [20220716 作業メモ](#20220716-作業メモ)
+  - [研究室内の自分PCにwslをインストール使用としたがうまくいかない...](#研究室内の自分pcにwslをインストール使用としたがうまくいかない)
+  - [bin2cエラー](#bin2cエラー)
+- [TODO](#todo)
 
 # はじめに
 
 基本的に公式の[Document](https://docs.lammps.org/Manual.html)を参考にするようにしてください。英語ですがありえないぐらい充実しています。
 
-基本的な解析の流れは以下の通りです。
+基本的な解析の流れは以下の通りです。1は最初だけ、2~3を繰り返してやっていく形になります。
 
-1. [Lammpsのインストール](#lammpsのインストール)
-2. [Visual Studio Code(VSCode)とWindows Terminalを起動する](#VSCodeとWindows-Terminalを起動する)
-3. [VSCodeでコードを書く](#VSCodeでコードを書く)
-4. [必要なモジュールを含めてLAMMPSをビルドする](#必要なモジュールを含めてLAMMPSをビルドする)
-5. ビルドして作成された実行可能ファイル(lmp)を実行
+1. [WSL2とLAMMPSのセットアップ](#WSL2とLAMMPSのセットアップ)
+2. [VSCodeでコードを書く](#VSCodeでコードを書く)
+3. [実行可能ファイルを通しての解析]()
 
-# lammpsのインストール
+# WSL2とLAMMPSのセットアップ
 
 ## wsl2のインストール
+[ここ](https://docs.microsoft.com/ja-jp/windows/wsl/install)を参考にしましょう。まずWindowsキーを押して`windows terminal`と検索してください。そうするとmicrosoft storeの画面が出てくると思いますので、windows terminalをインストールしてください。
 
-## lammpsのダウンロード
+インストール後もう一度windowsキーを押して、`windows terminal`と入力して**右クリックして管理者権限を与えて**windows terminalを起動してください。そうするとWindows Powershellと左上に書かれた画面が表示されると思います。
+
+![Windows Terminalの画面](./img/2022-07-16_12h16_17.png) 
+
+そうしたら`>`の横に続けて以下のコマンドを入力して、エンターを押してください。
+```bash
+wsl --install
+```
+そうすると色々な文字が表れると思います。`システムを再起動する必要があります`という文が出ますので、PCを再起動しましょう。
+
+![wsl2のインストール完了](./img/2022-07-16_12h23_07.png) 
+
+再起動すると英語でユーザー名とパスワードを聞いてくる画面が自動で出てきます。ユーザー名は個人が特定されにくいものがいいでしょう。パスワードは入力しても何も画面には反映されませんが仕様です。再入力も同じのを入力するようにしましょう。
+
+なお`ファイル システムの 1 つをマウント中にエラーが発生しました。詳細については、「dmesg」を実行してください。`というコメントが出た場合には、ユーザー名とパスワードの入力後に一旦画面を閉じて、管理者権限で起動したWindows Terminalの欄に次の2つのコマンドを一つずつ入力してください。
+
+```bash
+wsl.exe --update
+wsl.exe --shutdown
+```
+
+これらの作業が終了したらWindows Terminalを開いた直後の状態から、上のタブの下矢印(v)をクリックしてください。そして`Ubuntu`あるいは`Ubuntu 22.04 LTS`をクリックしてください。
+この状態でも`ファイル システム~`のメッセージが出る場合には、`dmesg | grep -i error`のコマンドを打った後の結果を見せてください。
+
+![Ubuntuの選択](./img/2022-06-26_16h29_53.png) 
+
+これが終わったら次のような画面が表示されていると思います。
+
+![Ubuntuの画面](./img/2022-06-26_16h24_15.png) 
+
+このUbuntu画面では`$`の後にコマンドという指令を出していくことで、データの操作を行っていきます。まず、Ubuntuの中身をアップデートする必要があるので次のコマンドを`$`の後に続けて打ち、一つずつ実行してください。 なおここからは基本的に[LAMMPSの公式サイト](https://docs.lammps.org/Howto_wsl.html)を参考にしていきます。
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+続けてLAMMPSの実行に必要なパッケージをインストールしていきます。次のコマンドを打って実行してください。
+
+```bash
+sudo apt install -y cmake build-essential ccache gfortran openmpi-bin libopenmpi-dev \
+                    libfftw3-dev libjpeg-dev libpng-dev python3-dev python3-pip \
+                    python3-virtualenv libblas-dev liblapack-dev libhdf5-serial-dev \
+                    hdf5-tools clang-format
+```
+
+## LAMMPSのダウンロード
+
+次に行うのはLAMMPSのダウンロードです。公式HPには二つの方法がありますが、現時点(2022年7月16日)での最新版が`stable_23June2022`なので、このidと方法1でダウンロードしていきます。最新版のリリースは[こちら](https://github.com/lammps/lammps/releases)から確認できます。次のコマンドで使用するURLは各投稿の一番下にあるAssetsから右クリックすることで取得できます。
+
+![URLの取得](./img/2022-07-16_13h47_07.png) 
+
+まず最初に`wget`コマンドを使用してファイルをダウンロードします。
+```bash
+wget https://github.com/lammps/lammps/archive/refs/tags/stable_23Jun2022.tar.gz
+```
+
+次に`tar`コマンドを使用して解凍します。
+```bash
+tar xvzf stable_23Jun2022.tar.gz
+```
+
+そして解凍してできたフォルダに移動します。
+```bash
+cd lammps-stable_23Jun2022
+```
+
+### FFMPEGのインストール
+
+また次のコンパイル時にエラーが出ないようにするためにFFMEPGというパッケージもインストールしておきます。次のコマンドを1行ずつ実行してください。
+
+```bash
+sudo add-apt-repository ppa:mc3man/trusty-media
+sudo apt-get update
+sudo apt-get dist-upgrade
+sudo apt-get install ffmpeg
+```
+
+## LAMMPSのビルド
+
+次にLAMMPSのビルドを行います。まず今移動してきた`lammps-stable_23Jun2022`のフォルダの中に`build`というフォルダを作り、そちらに移動します。次のコマンドを1行ずつ実行してください。
+
+```bash
+mkdir build
+cd build
+```
+
+ビルドの仕方はたくさんあり、後にも細かい設定を変えていくのですが、ひとまずデフォルトの設定でビルドをしてみたいと思います。`lammps-stable_23Jun2022`の中の`cmake`の中の`presets`というフォルダに、デフォルトのビルド設定が書かれたファイルがありますので、それを取ってきて構成します。これにより構成(Configuration)が終わり、Makefileという中間ファイルが作られます。(←たぶん正確な表現ではないと思われる...)
+
+```bash
+cmake ../cmake/presets/basic.cmake ../cmake
+```
+
+この後コンパイルをしていきます。
+```bash
+make -j 4
+```
+`-j 4`は何個の並列プロセスを走らせるかという意味です。自分のパソコンの物理コアに対応する数を入力するとコンパイルを早く終わらせることが出来ます。`[100%] Built target lmp`と最後に表示されればコンパイルは完成です。これで`build`のフォルダ内に実行可能ファイル`lmp`が作成されました。
 
 ## cudaのインストール
+基本的な内容はここまでなのですが、いくつかシミュレーションの高速化に当たって有用なパッケージがあるのでそれをインストールしていきたいと思います。**外付けのGPGPU(NVidia GeforceやAMD Radion)等がPCに付属しており、かつ接触モデルに`gran/hooke/history`を用いる**場合には、KOKKOSというアクセラレータ(加速用)パッケージが使用できます。ここからはこのKOKKOSを使用するための環境構築手順を説明します。
 
-## lammpsのビルド
+なお今回の環境はGeforce GTX 1060を基準にして話をしていきます。
 
-### GPUのインストール
+### CUDA Toolkitのインストール
+基本的な流れは[Nvidia公式サイト](https://docs.nvidia.com/cuda/wsl-user-guide/index.html#getting-started-with-cuda-on-wsl)から見れます。しかし手持ちの環境だとうまくいかなかった箇所があったため、こちらにも書いていきたいと思います。
 
-### KOKKOSインストール手順
-基本は[ここ](https://docs.lammps.org/Build_extras.html#kokkos)に書いてあるので参照するべし。
-- 利用可能なアーキテクチャ一覧がある([こちら](https://docs.lammps.org/Build_extras.html#available-architecture-settings)から参照)
-  - 今回の場合はRyzen 5950XとNVIDIA GeForce GTX 1650 or RTX 3090なのでArch-IDの中でも`ZEN3`と`TURING75`か`AMPERE86`が利用可能
-    - `CC`はCompute Capabilityの略で[ここ](https://developer.nvidia.com/cuda-gpus)から参照可能
-      - `AMPERE80`は過去の遺物?
-  - `cmake`のビルド時に以下のコードの入力する必要がある
-    - 連続して入力する場合には`cmake -D PKG_KOKKOS=yes -D Kokkos_ARCH_ZEN3=yes ../cmake`のようにする
-    - 共通
-      ```console
-      -D PKG_KOKKOS=yes
-      ```
-    - Zen3 CPU向け
-      ```console
-      -D Kokkos_ARCH_HOSTARCH=yes  # HOSTARCHはここではZEN3
-      -D Kokkos_ENABLE_OPENMP=yes
-      -D BUILD_OMP=yes
-      ```
-    - NVIDIA CPU向け
-      ```console
-      -D Kokkos_ARCH_GPUARCH=yes    # GPUARCHはここではTURING75かAMPERE86
-      -D Kokkos_ENABLE_CUDA=yes
-      -D CMAKE_CXX_COMPILER=${HOME}/lammps/lib/kokkos/bin/nvcc_wrapper
-      ```
-   
- - コンパイルする
-   ```console
-   make -j 4
-   ```
-   - なんかいろいろ警告が出るけど大きく分けてこの2つ
-     - `nvcc warning : The 'compute_35', ~~~`: nvccのコンパイラに`-Xcompiler "/wd 4819"`を渡せば解決するらしいが`cmake`からどのように設定するのか不明
-       - 多分CMakeLists.txtを書き換えればいいのかな...
-     - `warning #1675-D: unrecognized GCC pragma`: これもnvccのコンパイラに`-Xcudafe "--diag_suppress=unrecognized_gcc_pragma"`を通せばいいみたい
+まず行うべきはNvidiaのドライバのダウンロードです。これはwsl上ではなくホストのwindows上で行います。こちらの[リンク](https://www.nvidia.com/Download/index.aspx?lang=en-us)からドライバをダウンロードしてインストールしてください。なお自分のPCのGPGPUについてはタスクマネージャーから確認できます。またwindowsキーを押して、'Nvidia Control Panel`と入力した場合に同じ名前のソフトが出てくるようであれば、この手順は飛ばしてもらって大丈夫です。
+
+次からはWindows Terminal上のUbuntuの操作になります。まず次のコマンドを実行し、一番上の階層に移ります。
+```bash
+cd ~
+```
+
+そして次のコマンドを上から一つずつ実行していってください
+
+```bash
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
+sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
+sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/3bf863cc.pub
+sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/ /"
+sudo apt-get update
+sudo apt-get -y install cuda
+```
+
+最後にbin2cというファイルをwsl上のUbuntuに覚えて貰うために以下のコマンドを実行します。(pathへの追加)
+```bash
+sudo nano ~/.profile
+```
+
+そうすると次のような画面が出てくると思います。下矢印キーを押して一番下の行にカーソルを移動して、`PATH=$PATH:/usr/local/cuda-11.7/bin`を新しい行として追加してください。
+
+![nanoの画面](./img/2022-07-16_16h33_37.png) 
+
+入力が終わったら`ctrl+O`→`enter`→`ctrl+X`を押して、保存し元の画面に戻ってください。その後さらに
+```bash
+source ~/.profile
+```
+と先ほど入力したPathが反映される形となります。ここまでやればあともう一息です。
+```bash
+cd lammps-stable_23Jun2022/build/
+```
+と実行して、先ほどのビルドフォルダに移ります。そしてGPUパッケージ、GRANULARパッケージ、KOKKOSパッケージを有効化するために次のコードを実行し、コンパイルします。
+
+```bash
+cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes \
+      -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes \
+      -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes \
+      -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper ../cmake
+```
+```bash
+make -j 4
+```
+
+これで特にエラーが出てこなければひとまずビルドは完成です！
 
 # VSCodeとWindows Terminalを起動する
 これは簡単なので飛ばします。画面下のタスクバーにピン止めしてあるのでそれをクリックするか、左下の検索窓から検索してください。
 
 # VSCodeでコードを書く
-ここが一番の鬼門です。ひとまず6/26時点で動くコードは[こちら](./sample.in)から。
+ここが一番の鬼門です。ひとまず2022/6/26時点で動くコードは[こちら](./sample.in)から。
 
 まずコード全体の概観の説明をします。基本的にLAMMPSのコードは設計書だと思ってください。後で作成する実行可能ファイル(ゼネコン)にこの設計書を渡すことで、解析(建築作業)が始まります。コードは大きく分けて4つのセクションに分かれます。
 
@@ -85,16 +208,19 @@
    
 上にも書いた動くコードについて各行の意味を詳細に書きました。基本的にはこれを改良していくので問題ないかと思います。
 
-# 必要なモジュールを含めてLAMMPSをビルドする
+# 20220626 作業メモ
+##  必要なモジュールを含めてLAMMPSをビルドする
 ここからはWindows Terminalの話になります。まず開いた直後の状態から上のタブの下矢印(v)をクリックしてください。そしてUbuntu 22.04 LTSをクリックしてください。
 ![初期画面](./img/2022-06-26_16h29_53.png) 
 そうするとUbuntuのターミナル画面が表示されると思います。(PowerShellの方は使わないので×で消してもらって大丈夫です。)
 ![Ubuntuの画面](./img/2022-06-26_16h24_15.png) 
 今回のPCのUbuntuはCUI(キャラクタユーザインターフェース)なので、全部キーボードの入力で操作をしていきます。具体的には&#36;マークの続きにコマンド(指令)を入力し、その結果を見つつさらに新しいコマンドを打つ形になります。まずこの画面で`ls`と打ちエンターを押してみてください。ちなみに`ls`はlist segmentsの略です(&#36;と`ls`の間にあるスペースは自動で入っているものなので気にしないでください)。
 そうすると次の文字列が出力されたと思います。
-```console
+
+```bash
 get-pip.py  lammps-23Jun2022  lammps-stable.tar.gz
 ```
+
 ![lsの結果](./img/2022-06-26_16h40_16.png) 
 このlsというコマンドは、今いるフォルダの中にあるファイルとフォルダをすべて表示する
 というコマンドです。今回の場合get-pip.py、lammps-23Jun2022、lammps-stable.tar.gzの3つのファイルorフォルダが存在するため、このように表示されています。ちなみに文字色には意味があり、以下の通りです。
@@ -122,7 +248,7 @@ get-pip.py  lammps-23Jun2022  lammps-stable.tar.gz
 
 今回はcmakeというC言語あるいはC++プロジェクト向けのビルドツールを使います。ただそんなに難しい作業ではありません。コマンドラインに次の文字列を入力してください。
 
-```console
+```bash
 cmake -D PKG_GPU=yes -D GPU_API=cuda../cmake
 cmake -D PKG_GRANULAR=yes ../cmake
 cmake -D BUILD_MPI=yes ../cmake
@@ -134,7 +260,7 @@ cmake -D BUILD_MPI=yes ../cmake
 
 このコマンドが終了すると、どのようなビルドが行われたのかのレポートが表示されます。最後の2行が
 
-```console
+```bash
 -- Generating done
 -- Build files have been written to: /home/kiyolab/lammps-23Jun2022/build
 ```
@@ -145,7 +271,7 @@ cmake -D BUILD_MPI=yes ../cmake
 
 この次に、実際のbuildを行います。ここでは次のように入力します。
 
-```console
+```bash
 cmake --build . -j4
 ```
 
@@ -156,7 +282,7 @@ cmake --build . -j4
 
 ターミナルでも`./lmp`のコマンドを打つことによって確認できます。
 
-```console
+```bash
 LAMMPS (23 Jun 2022)
 OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:98)
   using 1 OpenMP thread(s) per MPI task
@@ -171,6 +297,40 @@ GPGPUが本当にどれぐらい効くのか、またマルチスレッドはど
 ### 実行可能ファイルのファイル名の変更方法
 - 結論：よくわからなかった。cmakeのコマンドをいじれば実行可能ファイル名を変えられるはずなんだけど、CMakeLists.txtの中にもそれらしきものは見つからず...
 - LAMMPS_BINARYやOUTPUT_NAMEに実行可能ファイル名が格納されているかもしれない。
+  
+### KOKKOSインストール手順
+基本は[ここ](https://docs.lammps.org/Build_extras.html#kokkos)に書いてあるので参照するべし。
+- 利用可能なアーキテクチャ一覧がある([こちら](https://docs.lammps.org/Build_extras.html#available-architecture-settings)から参照)
+  - 今回の場合はRyzen 5950XとNVIDIA GeForce GTX 1650 or RTX 3090なのでArch-IDの中でも`ZEN3`と`TURING75`か`AMPERE86`が利用可能
+    - `CC`はCompute Capabilityの略で[ここ](https://developer.nvidia.com/cuda-gpus)から参照可能
+      - `AMPERE80`は過去の遺物?
+  - `cmake`のビルド時に以下のコードの入力する必要がある
+    - 連続して入力する場合には`cmake -D PKG_KOKKOS=yes -D Kokkos_ARCH_ZEN3=yes ../cmake`のようにする
+    - 共通
+      ```bash
+      -D PKG_KOKKOS=yes
+      ```
+    - Zen3 CPU向け
+      ```bash
+      -D Kokkos_ARCH_HOSTARCH=yes  # HOSTARCHはここではZEN3
+      -D Kokkos_ENABLE_OPENMP=yes
+      -D BUILD_OMP=yes
+      ```
+    - NVIDIA CPU向け
+      ```bash
+      -D Kokkos_ARCH_GPUARCH=yes    # GPUARCHはここではTURING75かAMPERE86
+      -D Kokkos_ENABLE_CUDA=yes
+      -D CMAKE_CXX_COMPILER=${HOME}/lammps/lib/kokkos/bin/nvcc_wrapper
+      ```
+   
+ - コンパイルする
+   ```bash
+   make -j 4
+   ```
+   - なんかいろいろ警告が出るけど大きく分けてこの2つ
+     - `nvcc warning : The 'compute_35', ~~~`: nvccのコンパイラに`-Xcompiler "/wd 4819"`を渡せば解決するらしいが`cmake`からどのように設定するのか不明
+       - 多分CMakeLists.txtを書き換えればいいのかな...
+     - `warning #1675-D: unrecognized GCC pragma`: これもnvccのコンパイラに`-Xcudafe "--diag_suppress=unrecognized_gcc_pragma"`を通せばいいみたい
 
 ### `mpirun -np 16`とGPUを変更した際の実行結果
 
@@ -211,7 +371,7 @@ GPGPUが本当にどれぐらい効くのか、またマルチスレッドはど
 - GPUは`PKG_GPU=on`にしてもメモリを使用するだけで全然速くならない
 1. `100.0% CPU use with 1 MPI tasks x 1 OpenMP threads`
 
-```console
+```bash
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
 Pair    | 4.4758     | 4.4758     | 4.4758     |   0.0 | 73.16
@@ -237,7 +397,7 @@ Total wall time: 0:00:06
 
 2. `100.0% CPU use with 2 MPI tasks x 1 OpenMP threads`
 
-```console
+```bash
 MPI task timing breakdown:
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
@@ -264,7 +424,7 @@ Total wall time: 0:00:04
 
 3. `98.9% CPU use with 4 MPI tasks x 1 OpenMP threads`
 
-```console
+```bash
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
 Pair    | 0.5379     | 1.1592     | 1.8082     |  56.4 | 44.26
@@ -290,7 +450,7 @@ Total wall time: 0:00:02
 
 4. `98.9% CPU use with 8 MPI tasks x 1 OpenMP threads`
 
-```console
+```bash
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
 Pair    | 0.14694    | 0.63576    | 1.0896     |  45.1 | 34.28
@@ -316,7 +476,7 @@ Total wall time: 0:00:01
 
 5. `99.0% CPU use with 16 MPI tasks x 1 OpenMP threads`
 
-```console
+```bash
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
 Pair    | 0.039149   | 0.38002    | 1.494      |  73.3 | 14.98
@@ -342,7 +502,7 @@ Total wall time: 0:00:02
 
 6. `99.0% CPU use with 16 MPI tasks x 1 OpenMP threads` + GPU
 
-```console
+```bash
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
 Pair    | 0.046393   | 0.41233    | 1.5131     |  76.5 | 15.28
@@ -366,7 +526,35 @@ Dangerous builds = 0
 Total wall time: 0:00:04
 ```
 
-## TODO
+# 20220716 作業メモ
+
+## 研究室内の自分PCにwslをインストール使用としたがうまくいかない...
+- `ファイル システムの 1 つをマウント中にエラーが発生しました。詳細については、「dmesg」を実行してください。`
+  - [ここ](https://github.com/microsoft/WSL/issues/5680)を見たけど`wsl --update`でも改善しない...
+  - `dmesg | grep -i error`(dmesgはLinuxカーネルが起動時に出力したメッセージを表示するコマンド)をやってみた
+    ```bash
+    [    2.678154] EXT4-fs (sdc): mounted filesystem with ordered data mode. Opts: discard,errors=remount-ro,data=ordered
+    [    3.307626] init: (1) ERROR: MountPlan9WithRetry:285: mount drvfs on /mnt/f (cache=mmap,noatime,msize=262144,trans=virtio,aname=drvfs;path=F:\;uid=0;gid=0;symlinkroot=/mnt/
+    [    3.967180] init: (1) ERROR: MountPlan9WithRetry:285: mount drvfs on /mnt/f (cache=mmap,noatime,msize=262144,trans=virtio,aname=drvfs;path=F:\;uid=0;gid=0;symlinkroot=/mnt/
+    ```
+  - なんか`path=F:\`っておかしくね...
+  - Fドライブはフォーマットされていない8TBのHDDドライブ
+  - 多分以前何かを入れておいて初期化したままになっていたみたい...
+  - フォーマットしてバックアップドライブとして指定したら解決！(多分空き容量か何かで見てる？？)
+
+## bin2cエラー
+```bash
+CMake Error at Modules/Packages/GPU.cmake:44 (message):
+  Could not find bin2c, use -DBIN2C=/path/to/bin2c to help cmake finding it.
+```
+このエラーが無くならない
+- 再インストールをしてもだめ
+- bin2cへのパスを記入せよと言われているが、そのbin2cのファイルが見当たらない
+  - everythingで探していたからだった...
+    - everythingのオプション→検索データ→フォルダ→すべてをすぐに更新
+    - データベースが更新され`\\wsl.localhost\Ubuntu\usr\local\cuda-11.7\bin\bin2c`にあることが分かった
+
+# TODO
 1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、名工大前田先生、土研大坪先生)
    1. マイクロパラメータ(粒子間剛性や粘性、使用している弾塑性モデル)がどのように設定されているのか
    2. 杭の挿入の際にどのような境界条件を変化させているのか
@@ -379,7 +567,7 @@ Total wall time: 0:00:04
 5. 境界面に作用する応力をデータとして吐き出すことができるのか
 6. このREADMEの情報追加
    1. WSL2のUbuntuセットアップ手順
-   2. lammpsのインストール手順
+   2. LAMMPSのインストール手順
 
 
    
