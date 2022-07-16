@@ -179,27 +179,49 @@ source ~/.profile
 ```bash
 cd lammps-stable_23Jun2022/build/
 ```
-と実行して、先ほどのビルドフォルダに移ります。そしてGPUパッケージ、GRANULARパッケージ、KOKKOSパッケージを有効化するために次のコードを実行し、コンパイルします。
+と実行して、先ほどのビルドフォルダに移ります。そしてGPUパッケージ、GRANULARパッケージ、KOKKOSパッケージを有効化するために次のコードを実行し、コンパイルします。**ここで`GPU_ARCH=sm_61, Kokkos_ARCH_SKX=yes, Kokkos_ARCH_PASCAL61`の部分はPCの構成によって変更がある部分です。** [こちら](https://docs.lammps.org/Build_extras.html#available-architecture-settings)を参考に適切な文字列に置き換えてください。
 
 ```bash
-cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes \
-      -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes \
-      -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes \
-      -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper ../cmake
+cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes ../cmake
+cmake -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes ../cmake
+cmake -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes ../cmake
+cmake -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper ../cmake
 ```
 ```bash
 make -j 4
 ```
 
-これで特にエラーが出てこなければひとまずビルドは完成です！
+これで特にエラーが出てこなければひとまずビルドは完成です！さらにこの実行可能ファイルをインストールします。
 
-# VSCodeとWindows Terminalを起動する
-これは簡単なので飛ばします。画面下のタスクバーにピン止めしてあるのでそれをクリックするか、左下の検索窓から検索してください。
+```bash
+make install
+```
+
+インストール先は`~/.local/bin`となりますので、このパスを追加します。先ほどと同じようにnanoエディタで`.profile`を開きます。
+
+```bash
+sudo nano ~/.profile
+```
+
+ここの最終行に以下の文字列を追加します。
+```bash
+PATH=$PATH:$HOME/.local/bin
+```
+入力が終わったら`ctrl+O`→`enter`→`ctrl+X`を押して、保存し元の画面に戻ってください。その後さらに
+```bash
+source ~/.profile
+```
+と先ほど入力した内容が反映されます。このあと`lmp`とコマンドを打つと次のようなログが表示されれば成功です。
+```bash
+LAMMPS (23 Jun 2022)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:98)
+  using 1 OpenMP thread(s) per MPI task
+```
 
 # VSCodeでコードを書く
-ここが一番の鬼門です。ひとまず2022/6/26時点で動くコードは[こちら](./sample.in)から。
+ひとまず2022/6/26時点で動くコードは[こちら](./sample.in)から。
 
-まずコード全体の概観の説明をします。基本的にLAMMPSのコードは設計書だと思ってください。後で作成する実行可能ファイル(ゼネコン)にこの設計書を渡すことで、解析(建築作業)が始まります。コードは大きく分けて4つのセクションに分かれます。
+まずコード全体の概観の説明をします。基本的にLAMMPSのコードは設計書だと思ってください。前の節で作成した実行可能ファイル(ゼネコン)にこの設計書を渡すことで、解析(建築作業)が始まります。コードは大きく分けて4つのセクションに分かれます。
 
 1. 初期化：粒子や粒子を入れる箱を作る前のパラメータを決定します(単位、次元、境界条件、解析する粒子の種類など)
 2. 系の定義：粒子や粒子を入れる箱、また粒子に作用する力に関する仕様を決定します。
@@ -553,6 +575,21 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
   - everythingで探していたからだった...
     - everythingのオプション→検索データ→フォルダ→すべてをすぐに更新
     - データベースが更新され`\\wsl.localhost\Ubuntu\usr\local\cuda-11.7\bin\bin2c`にあることが分かった
+
+## 別PCでやった(5950XとRTX3070)でのエラー
+- `make -j 16`コンパイル中に以下のようなエラー
+  ```bash
+  cc1plus: error: bad value (‘znver3’) for ‘-march=’ switch
+  cc1plus: note: valid arguments to ‘-march=’ switch are: nocona core2 nehalem corei7 westmere sandybridge corei7-avx ivybridge core-avx-i haswell core-avx2 broadwell skylake skylake-avx512 cannonlake icelake-client icelake-server cascadelake tigerlake bonnell atom silvermont slm goldmont goldmont-plus tremont knl knm x86-64 eden-x2 nano nano-1000 nano-2000 nano-3000 nano-x2 eden-x4 nano-x4 k8 k8-sse3 opteron opteron-sse3 athlon64 athlon64-sse3 athlon-fx amdfam10 barcelona bdver1 bdver2 bdver3 bdver4 znver1 znver2 btver1 btver2 native; did you mean ‘znver1’?
+  ```
+- gccのバージョンが低いことが理由
+  - 下記のコードで解決できるらしいですが、理由までは調べ切れていません。
+    ```console
+    sudo apt install gcc-10 g++-10
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+    sudo update-alternatives --config gcc
+    ```
+
 
 # TODO
 1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、名工大前田先生、土研大坪先生)
