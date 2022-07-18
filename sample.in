@@ -153,28 +153,26 @@ fix INS all pour 2000 1 300719 vol 0.1 10 region REG1 diam one 0.035 dens 1 2
 
 
 # compute: 一ステップごとに計算するパラメータの定義
-uncompute   thermo_pe
-compute     contact_atom all contact/atom
-compute     kinetic_energy all erotate/sphere 
-compute     stress_atom all stress/atom NULL
+compute     PRES0 all pressure TEMP0
+compute     
 
 # timestep: 解析時の時間間隔の決定
-timestep 0.0001
+timestep    0.0001
 
 # ログに出力する情報の設定
 thermo_style	custom elapsed atoms
-thermo		    10000
+thermo		    1000
 thermo_modify   lost ignore
 
 # 何ステップ分解析を回すか
-run 30000
+run     30000
 
 # 粒子を注ぐのをやめる
-unfix INS
+unfix   INS
 
 # 杭の挿入
-region REG2 cylinder z 0 0 0.1 0.35 0.8 side out units box move NULL NULL v_dz
-fix WALL2 all wall/gran/region hooke/history 100.0 100.0 1.0 1.0 0.5 0 region REG2
+region  REG2 cylinder z 0 0 0.1 0.35 0.8 side out units box move NULL NULL v_dz
+fix     WALL2 all wall/gran/region hooke/history 100.0 100.0 1.0 1.0 0.5 0 region REG2
 
 # 何ステップ分解析を回すか
-run 20000
+run     20000

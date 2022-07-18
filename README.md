@@ -22,6 +22,7 @@
   - [bin2cエラー](#bin2cエラー)
   - [別PC(5950XとRTX3070)でセットアップした際のエラー](#別pc5950xとrtx3070でセットアップした際のエラー)
   - [Ghost Atomについて](#ghost-atomについて)
+  - [computeとthermoの違いが分からない...](#computeとthermoの違いが分からない)
   - [TODO](#todo)
 
 # はじめに
@@ -592,6 +593,31 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
 
 ## Ghost Atomについて
 - [このページ](https://docs.lammps.org/Developer_par_comm.html#communication)に書いてあった。
+
+
+## computeとthermoの違いが分からない...
+- どのように変数を計算させるのか、どのようにそれらをログとして出力するのか
+  - 3種類の物理量: `global`、`per-atom`、`local`がある
+    - `global`: `thermo_style custom`で出力可能
+    - `per-atom`: `dump custom`で出力可能
+    - `local`: `compute reduce`で出力可能
+  - では杭壁面に作用する応力はどの変数に当たるのか?
+    - たとえば[compute pressure](https://docs.lammps.org/compute_pressure.html)というコマンドがある
+      - ここで計算される圧力あるいは応力テンソルは次のような形をしている
+        - $P=\frac{Nk_BT}{V}+\frac{\sum_i^{N'}r_i \cdot f_i}{dV}$
+          - 右辺第1項は状態方程式による項、第2項はビリアル定理による項
+          - ビリアル定理は「系全体の運動エネルギー$K$の時間平均は、系全体のポテンシャルエネルギー$V$の時間平均の$1/2$に等しい」ことを示す
+      - 何か計算したいものと違う気がする...
+        - 粒状体では温度は考慮しないから、第2項しか存在しないはず
+        - 各粒子に作用する力は重力と隣接する粒子からの接触力に起因するもの(?)
+        - 多分このコマンドは複数の領域に分割されるようなケースは想定していないのでは...?
+          - 簡単なコードで解析してみたい
+    - また`reduce`というコマンドがある
+      - localあるいはper-atomの出力された物理量をまとめられる
+    - [これ(compute temp/sphere)](https://docs.lammps.org/compute_temp_sphere.html)かもしれない
+          - 
+- おそらくthermoから見た方がいいかもしれない
+- 
 
 ## TODO
 1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、名工大前田先生、土研大坪先生)
