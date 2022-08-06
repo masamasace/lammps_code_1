@@ -418,10 +418,47 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
   - `temprates`の計算方法は二つ
     1. 目標応力と現在応力の差分に体積弾性率を掛けたもの
       - なんでパラメータ名が`tallymeans`なの？何の略？
-      - 
-    2. `multistress`以降のパラメータとして与えられたもの
-  - 
-    - 
+      - `meaneffectivestress = (tallymeans[0] + tallymeans[1] + tallymeans[2]) / 3.0`という書き方を見ると応力テンソルの対角成分のことを意味するらしい
+      - なぜdiagonal componentとかではないのか...？
+      - headerファイルに`The total mean stresses from all processors`と記載されていた
+      - `fix_multistress.cpp`内には`tallymeans`は計算されていない
+        - 1次元配列で要素数は6個、上三角行列の各成分に対応
+      - どこで計算されているんだ...？
+    2. `multistress`以降のパラメータとして`maxrate`
+  - `MPI_Allreduce(&means[0], &tallymeans[0], 6, MPI_DOUBLE, MPI_SUM, world);`この式はどういう意味？
+    - `MPI_ALLREDUC`とは`MPI_REDUCE`の結果を全プロセスに渡すという意味
+    - `MPI_REDUCE`とは`MPI_GATHER`と演算を組み合わせたもの．例えば，各々のプロセスのデータの和，積，最大値，最小値などを求め，1つのプロセスに渡す．
+    - そもそもMPIとは...
+      - Message Passing Interfaceの略。
+      - スレッドとメモリをひとまとめにしたものをプロセスと呼ぶ
+      - MPIはプロセス間のメモリ情報のやり取りを規定したもの
+    - `MPI_GATHER`とは各々のプロセスのデータを連結して1つのプロセスに集める
+    - 引数は次の通り→`MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm, ierror)`
+      - countとはデータの個数のこと
+      - commはどのプロセス間での通信を許可するかの範囲を決めたもの(理解が曖昧)。デフォルトで`MPI_COMM_WORLD`が用意されている。今回の`world`もその派生？
+    - (なるほど！)`sendbuf`と`recvbuf`はそれぞれ送信するデータと受信するデータの**先頭のアドレス**を引数とする
+      - だから`means[i]`みたいな書き方にはならない
+      - ちなみに`means`は「現在のタイムステップにおける平均応力」
+    - なのでこのコードでやっていることを日本語で記述すると「各プロセス内の`means`に関して総和を取ったものを各プロセス内の`tallymeans`にブロードキャスト(同じ値を代入)する」
+  - `means`はどうやって計算されている？
+    - `fix_mutilstress.h`だと` double *means; //~ The mean stresses on the current timestep`と書かれている
+    - ヘッダーファイルの変数に付くアスタリスクってどういう意味だっけ？
+      - ポインタだ
+    - 例えばこんな書き方になっている→`double *means = stressatom->array_export();`
+    - アロー演算子(`->`)はポインタからでも構造体や共用体の要素にアクセスできる。
+    - (特定の粒子あるいは粒子全体に作用する応力の総和によって、領域に作用する圧力を計算しているとすれば、杭に作用する応力ってどうやって計算するんだ...？)
+    - `stressatom`はcomputeクラスで`compute_stress_atom.cpp`と`compute_stress_atom.h`に定義されている
+    - 詳しい計算は`array_export()`メンバ内に書かれている
+  - `array_export()`内の計算内容
+    - (これかもしれない...) `if (mask[i] & groupbit){...}`という構文がある
+      - `...`では各粒子の体積を次元を考慮して計算した後、`stress`と体積を掛け算して、`stress`の一次元目に対して総和を取っている
+        - `stress[i][j]`のうち`i`は粒子総数、`j`は応力テンソルの6成分
+      - `stress[i][j]`は`vatom[i][j]`の総和...?
+        - i番目の粒子に作用する力jによって生じる6成分の応力成分だったとたら`vatom[i][j][6]`じゃないとおかしくない...？
+      - `vatom[i][j]`の定義はどうなっている
+        - vはおそらくvirial(ビリアル)の略...ビリアル応力
+        - とりあえず[lammpsの公式サイト](https://docs.lammps.org/compute_stress_atom.html)を読
+        - あるいは[こちらのサイト](https://github.com/kaityo256/md2019/blob/main/pressure/README.md)も参考になるかもしれない
   
 ## TODO
 1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、名工大前田先生、土研大坪先生)
