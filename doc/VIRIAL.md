@@ -11,6 +11,7 @@ $$
 $$
 \frac{\partial G}{\partial t} = \sum_i \frac{\partial \boldsymbol{p}_i}{\partial t} \cdot \boldsymbol{q}_i + \sum_i \boldsymbol{p}_i \cdot \frac{\partial \boldsymbol{q}_i}{\partial t} \tag{1}
 $$
+
 この式の右辺について詳しく見ていきます。
 
 ## $\frac{\partial \bm{p}_i}{\partial t}$について
