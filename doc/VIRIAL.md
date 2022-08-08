@@ -23,7 +23,7 @@ $$
 $$
 
 となります。ここで $m$ は粒子の質量、 $\boldsymbol{f}_i$ は粒子 $i$ に作用する力です。
-次にこの $\boldsymbol{f}_i$ を内力と外力に分けていきます。内力は粒子 $j$ から粒子 $i$ に作用する力を $\boldsymbol{f}_{ij }$ とします。
+次にこの $\boldsymbol{f}_i$ を内力と外力に分けていきます。内力は粒子 $j$ から粒子 $i$ に作用する力を $\boldsymbol{f}__{ij}$ とします。
 また外力を $\boldsymbol{f}_i^\mathrm{ext}$ とします。すると $\boldsymbol{f}_i$ は次のように分解できます。
 
 $$
