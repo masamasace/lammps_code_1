@@ -459,6 +459,7 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
         - vはおそらくvirial(ビリアル)の略...ビリアル応力
         - とりあえず[lammpsの公式サイト](https://docs.lammps.org/compute_stress_atom.html)を読
         - あるいは[こちらのサイト](https://github.com/kaityo256/md2019/blob/main/pressure/README.md)も参考になるかもしれない
+          - [こちら](VIRIAL.md)に勉強内容を書いた
   
 ## TODO
 1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、名工大前田先生、土研大坪先生)
