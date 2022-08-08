@@ -30,4 +30,4 @@ $$
 \boldsymbol{f}_i = \sum_{i \neq j} \boldsymbol{f}_{ij} + \boldsymbol{f}_i^\mathrm{ext} \tag{3}
 $$
 
-よって式 $\mathrm{(3)}$ は 
+よって式 $\mathrm{(3)}$ はつぎのようになる。
