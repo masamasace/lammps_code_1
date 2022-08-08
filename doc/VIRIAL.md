@@ -12,16 +12,17 @@ $$
 \frac{\partial G}{\partial t} = \sum_i \frac{\partial \boldsymbol{p}_i}{\partial t} \cdot \boldsymbol{q}_i + \sum_i \boldsymbol{p}_i \cdot \frac{\partial \boldsymbol{q}_i}{\partial t} \tag{1}
 $$
 
-この式( $\eqref{1}$ )の右辺について詳しく見ていきます。
+この式の右辺について詳しく見ていきます。
 
-## $\frac{\partial \bm{p}_i}{\partial t}$について
+## $\frac{\partial \boldsymbol{p}_i}{\partial t}$ について
 
 まず右辺第1項はニュートンの第2法則より
+
 $$
-\sum_i \frac{\partial \bm{p}_i}{\partial t} = \sum_i m_i \ 
-    \frac{\partial \bm{v}_i}{\partial t} = \sum_i \bm{f}_i \tag{2}
+\sum_i \frac{\partial \boldsymbol{p}_i}{\partial t} = \sum_i m_i \frac{\partial \boldsymbol{v}_i}{\partial t} = \sum_i \boldsymbol{f}_i \tag{2}
 $$
-となります。ここで$m$は粒子の質量、$\bm{f}_i$は粒子$i$に作用する力です。次にこの$\bm{f}_i$を内力と外力に分けていきます。ここで内力(粒子$j$から粒子$i$に作用する力)を$\bm{f}_{ij}$とします。また外力を$\bm{f}_i^\mathrm{ext}$とします。すると$\bm{f}_i$は次のように分解できます。
+
+となります。ここで $m$ は粒子の質量、 $\bm{f}_i$ は粒子 $i$ に作用する力です。次にこの $\bm{f}_i$ を内力と外力に分けていきます。ここで内力(粒子 $j$ から粒子 $i$ に作用する力)を $\bm{f}_{ij}$ とします。また外力を $\bm{f}_i^\mathrm{ext}$ とします。すると $\bm{f}_i$ は次のように分解できます。
 
 $$
 \bm{f}_i = \sum_{i \neq j} \bm{f}_{ij} + \bm{f}_i^\mathrm{ext} \tag{3}
