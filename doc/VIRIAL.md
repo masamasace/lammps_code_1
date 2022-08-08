@@ -23,10 +23,11 @@ $$
 $$
 
 となります。ここで $m$ は粒子の質量、 $\boldsymbol{f}_i$ は粒子 $i$ に作用する力です。
-次にこの $\boldsymbol{f}_i$ を内力と外力に分けていきます。ここで内力(粒子 $j$ から粒子 $i$ に作用する力)を $\boldsymbol{f}_{ij}$ とします。また外力を $\boldsymbol{f}_i^\mathrm{ext}$ とします。すると $\boldsymbol{f}_i$ は次のように分解できます。
+次にこの $\boldsymbol{f}_i$ を内力と外力に分けていきます。ここ粒子 $j$ から粒子 $i$ に作用する力を $\boldsymbol{f}_{ij}$ とします。
+また外力を $\boldsymbol{f}_i^\mathrm{ext}$ とします。すると $\boldsymbol{f}_i$ は次のように分解できます。
 
 $$
 \boldsymbol{f}_i = \sum_{i \neq j} \boldsymbol{f}_{ij} + \boldsymbol{f}_i^\mathrm{ext} \tag{3}
 $$
 
-よって式 $\mathrm{(2)}$ 
+よって式 $\mathrm{(3)}$ は 
