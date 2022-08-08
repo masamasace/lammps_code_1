@@ -6,7 +6,7 @@ $$
 G = \sum_i \boldsymbol{p}_i \cdot \boldsymbol{q}_i
 $$
 
-ここで $\bm{p}_i$ は $i$ 番目の粒子の運動量、 $\bm{q}_i$ は $i$ 番目の粒子の位置座標を指します。ここで両辺を時間微分してみます。
+ここで $\boldsymbol{p}_i$ は $i$ 番目の粒子の運動量、 $\boldsymbol{q}_i$ は $i$ 番目の粒子の位置座標を指します。ここで両辺を時間微分してみます。
 
 $$
 \frac{\partial G}{\partial t} = \sum_i \frac{\partial \boldsymbol{p}_i}{\partial t} \ 
