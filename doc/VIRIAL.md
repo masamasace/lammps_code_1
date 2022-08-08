@@ -30,4 +30,4 @@ $$
 \boldsymbol{f}_i = \sum_{i \neq j} \boldsymbol{f}_{ij} + \boldsymbol{f}_i^\mathrm{ext} \tag{3}
 $$
 
-よって式 $\mathrm{(3)}$ はつぎのようになる。次にこの $\boldsymbol{f}_i$ を内力と外力に分けていきます。ここ粒子 $j$ から粒子 $i$ に作用する力を $\boldsymbol{f}_{ij}$ とします。
+よって式 $\mathrm{(3)}$ はつぎのようになる。次にこの $\boldsymbol{f}_i$ を内力と外力に分けていきます。
