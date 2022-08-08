@@ -8,9 +8,9 @@ $$
 
 ここで $\boldsymbol{p}_i$ は $i$ 番目の粒子の運動量、 $\boldsymbol{q}_i$ は $i$ 番目の粒子の位置座標を指します。ここで両辺を時間微分してみます。
 
-$$ \frac{\partial G}{\partial t} = \sum_i \frac{\partial \boldsymbol{p}_i}{\partial t} 
-    \cdot \boldsymbol{q}_i + \sum_i \boldsymbol{p}_i \cdot \frac{\partial \boldsymbol{q}_i}{\partial t} 
-\tag{1} $$
+$$
+\frac{\partial G}{\partial t} = \sum_i \frac{\partial \boldsymbol{p}_i}{\partial t} \cdot \boldsymbol{q}_i + \sum_i \boldsymbol{p}_i \cdot \frac{\partial \boldsymbol{q}_i}{\partial t} \tag{1}
+$$
 この式の右辺について詳しく見ていきます。
 
 ## $\frac{\partial \bm{p}_i}{\partial t}$について
