@@ -193,5 +193,5 @@ $$
 となり、ここで右辺第2項は
 
 $$
-\sum_n \left( \boldsymbol{f}_n^{ext} \otimes \boldsymbol{q}_n \right) =  \boldsymbol{\sigma} V
+\sum_n \left( \boldsymbol{f}_n^{ext} \otimes \boldsymbol{q}_n \right) = - \boldsymbol{\sigma} V
 $$

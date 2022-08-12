@@ -460,9 +460,39 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
         - とりあえず[lammpsの公式サイト](https://docs.lammps.org/compute_stress_atom.html)を読
         - あるいは[こちらのサイト](https://github.com/kaityo256/md2019/blob/main/pressure/README.md)も参考になるかもしれない
           - [こちら](VIRIAL.md)に勉強内容を書いた
-  
+        - 完全には理解できていないが、「ビリアル定理によって熱平衡状態にある多粒子系の応力テンソルは粒子間相互作用と粒子それぞれの運動エネルギーから定義できる」ことを指す
+        - `vatom[i][j]`のうち`[i]`は粒子のインデックス、`[j]`は応力テンソルの6成分。(おそらくドキュメントに書かれている順番からxx, yy, zz, xy, xz, yzのはず)
+        - `vatom[i][j]`は粒子間相互作用以外にも結合力(bond)や結合角(angle)、二面角(dihedral), improper, kspaceからも計算される
+    - `compute_stress_atom.cpp`内の`if (mask[i] & groupbit){...}`の`mask[i]`と`groupbit`とはそれぞれなに？
+      - `mask[i]`は`nlocal`個の配列長さを持つ
+      - `nlocal`は`atom.h`内にプロセッサーが有する粒子というコメントがある
+        - lammpsでは解析する空間を区切っているがそれに関する名前が複数あって違いが良く分からない
+        - Region, Processor, Rank, Mask, Groupbit, Neiborlist
+      - `mask[i] = (int) ubuf(buf[m++]).i;`というコードがよく見かけられる
+        -  `ubuf`は共用体として定義されていて、型変換を行っている
+           -  コンパイラによる警告を避けるためと書かれているけど、あまりよくない書き方なのでは...？あるいはbit数の異なるOSそれぞれに対応するための折衷案？
+           -  半分ぐらいは`unpack_border`の中に書かれている
+              -  引数が`n, first, *buf`→`buf`はポインタ渡し
+           -  `m++`はインクリメントなので、bufの中身が重要
+       -  条件付きの再帰関数になっている
+          -  再帰関数ではなくコールバック関数？
+          - ```cpp
+              if (atom->nextra_border)
+                for (int iextra = 0; iextra < atom->nextra_border; iextra++)
+                  m += modify->fix[atom->extra_border[iextra]]->
+                    unpack_border(n,first,&buf[m]);
+            ```
+          - このコードが良く分からない...
+          - `nextra_boarder`はおそらくnumber of particle to be extracted around borderの略
+          - `buf`は文字通り仮の変数で色々な者が入ってくる
+            - 例えば粒子の位置であったり、速度であったり
+          - `pack_border`は粒子情報をバッファに保存し、近傍で再構築する際に通信するコマンド
+          - `unpack_border`バッファから粒子情報を取り出す
+          - `mask[i] = (int) ubuf(buf[m++]).i;`というコードはバッファからのやり取りで本質的なものではない
+       - `buf`の中身は良く分からないけど、ひとまず`mask[i]`で境界領域の粒子の判別をしている？
+          - この点についてもう少しよく理解する必要がある
 ## TODO
-1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、名工大前田先生、土研大坪先生)
+1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、土研大坪先生)
    1. マイクロパラメータ(粒子間剛性や粘性、使用している弾塑性モデル)がどのように設定されているのか
    2. 杭の挿入の際にどのような境界条件を変化させているのか
       1. 粉体工学のミルの設計に関する研究などが約に立つかもしれない
