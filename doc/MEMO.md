@@ -467,7 +467,7 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
       - `mask[i]`は`nlocal`個の配列長さを持つ
       - `nlocal`は`atom.h`内にプロセッサーが有する粒子というコメントがある
         - lammpsでは解析する空間を区切っているがそれに関する名前が複数あって違いが良く分からない
-        - Region, Processor, Rank, Mask, Groupbit, Neiborlist
+        - Region, Processor, Rank, Mask, Group, Neiborlist
       - `mask[i] = (int) ubuf(buf[m++]).i;`というコードがよく見かけられる
         -  `ubuf`は共用体として定義されていて、型変換を行っている
            -  コンパイラによる警告を避けるためと書かれているけど、あまりよくない書き方なのでは...？あるいはbit数の異なるOSそれぞれに対応するための折衷案？
@@ -489,8 +489,21 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
           - `pack_border`は粒子情報をバッファに保存し、近傍で再構築する際に通信するコマンド
           - `unpack_border`バッファから粒子情報を取り出す
           - `mask[i] = (int) ubuf(buf[m++]).i;`というコードはバッファからのやり取りで本質的なものではない
-       - `buf`の中身は良く分からないけど、ひとまず`mask[i]`で境界領域の粒子の判別をしている？
-          - この点についてもう少しよく理解する必要がある
+       - `mask[i]`で境界領域の粒子の判別をしている？ではそのフラグはどのようにして切り替わっている？
+         - 調べても情報は出てこなかった
+         - `fix_pour.cpp`内では`atom->mask[n] = 1 | groupbit;`と書かれている。
+         - `|`はbitでのOR演算子
+         - `groupbit`は`compute_stress_atom.cpp`内で`int groupbit = bitmask[igroup];`と書かれている
+         - `bitmask`は`group.cpp`内で`for (int i = 0; i < MAX_GROUP; i++) bitmask[i] = 1 << i;`と書かれている
+           - MAX_GROUPは32と定義されている
+         - これだとこのコードの後は'[11111111111111111111111111111111]'となっているはず
+         - `bitmask`の値を変更するようなコードは見つからない...
+     - `bitmask`は最大32個のグループを識別するもの
+       - ということは`mask[i]`も`int`型でないといけない
+     - ここで打ち止め、もう少しlammpsのコードを触ってからこちらに戻ってくる。
+
+
+
 ## TODO
 1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、土研大坪先生)
    1. マイクロパラメータ(粒子間剛性や粘性、使用している弾塑性モデル)がどのように設定されているのか
