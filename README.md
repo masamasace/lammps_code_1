@@ -60,6 +60,20 @@ wsl --install
 ```
 そうすると色々な文字が表れると思います。最後に`要求された操作は正常に終了しました。変更を有効にするには、システムを再起動する必要があります`という文が出ますので、PCを再起動しましょう。
 
+もしインストールができず、長い文字列が表示された場合には、
+
+```bash
+wsl --list --online
+```
+
+を実行したのちに、一番下に出てくる`Ubuntu-20.04`(時期によって異なります)を使って
+
+```bash
+wsl --install -d Ubuntu-20.04
+```
+
+のコマンドを実行してください。
+
 ![WSL2のインストール完了](./img/2022-07-16_12h23_07.png) 
 
 再起動すると英語でユーザー名とパスワードを聞いてくる画面が自動で出てきます。ユーザー名は個人が特定されにくいものがいいでしょう。
@@ -186,21 +200,28 @@ sudo nano ~/.profile
 ![nanoの画面](./img/2022-07-16_16h33_37.png) 
 
 入力が終わったら`ctrl+O`→`enter`→`ctrl+X`を押して、保存し元の画面に戻ってください。その後さらに
+
 ```bash
 source ~/.profile
 ```
 と先ほど入力したPathが反映される形となります。ここまでやればあともう一息です。
-```bash
-cd lammps-stable_23Jun2022/build/
-```
-と実行して、先ほどのビルドフォルダに移ります。そしてGPUパッケージ、GRANULARパッケージ、KOKKOSパッケージを有効化するために次のコードを実行し、コンパイルします。**ここで`GPU_ARCH=sm_61, Kokkos_ARCH_SKX=yes, Kokkos_ARCH_PASCAL61`の部分はPCの構成によって変更がある部分です。** [こちら](https://docs.lammps.org/Build_extras.html#available-architecture-settings)を参考に適切な文字列に置き換えてください。
 
 ```bash
-cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes ../cmake
-cmake -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes ../cmake
-cmake -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes ../cmake
-cmake -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper ../cmake
+cd lammps-stable_23Jun2022
+rm -r build
+mkdir build
+cd build
 ```
+
+と実行して、先ほどのビルドフォルダを一旦削除したのち`build`フォルダに移ります。そしてGPUパッケージ、GRANULARパッケージ、KOKKOSパッケージを有効化するために次のコードを実行し、コンパイルします。**ここで`GPU_ARCH=sm_61, Kokkos_ARCH_SKX=yes, Kokkos_ARCH_PASCAL61`の部分はPCの構成によって変更がある部分です。** [こちら](https://docs.lammps.org/Build_extras.html#available-architecture-settings)を参考に適切な文字列に置き換えてください。
+
+```bash
+cmake ../cmake 
+cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper . 
+```
+
+そしてビルドを実行します。
+
 ```bash
 make -j 4
 ```
@@ -211,7 +232,7 @@ make -j 4
 さらに作成した実行可能ファイルをインストールします。
 
 ```bash
-make install
+sudo make install
 ```
 
 インストール先は`~/.local/bin`となりますので、このパスを追加します。先ほどと同じようにnanoエディタで`.profile`を開きます。

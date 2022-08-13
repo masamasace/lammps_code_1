@@ -502,6 +502,66 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
        - ということは`mask[i]`も`int`型でないといけない
      - ここで打ち止め、もう少しlammpsのコードを触ってからこちらに戻ってくる。
 
+## `lmp: error while loading shared libraries: libcuda.so.1`の解決策について
+- このエラーに行きつく前のエラー達
+  - `cmake -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper ../cmake`のコマンドだけは別に実行しないと行けないらしい...
+    - 理由は不明。とりあえずこのひとつ前のコードと分けて実行すると`Enable Package`のリストが正しく更新されることを確認済み。`make -j 4`の最初に表示されるビルド情報をしっかりと見ること
+  - そもそも`make install`をすると新しくビルドをしてもう一度`make install`をしても更新されない現象がある
+    - 解決策については以下に記載予定(現在編集中)
+      - `lammps`配下の`build`フォルダを一旦削除
+      - `~/.local/bin`内にある`lmp`を削除
+      - `~/.profile`の`PATH=$PATH:$HOME/.local/bin`の行も一旦削除
+    - 現在調査中
+- `libcuda.so.1`から`libcuda.so`へのシンボリックリンクが作成されていないことが原因
+  - ソースコードを修正するとしたら、ビルドの過程でシンボリックリンクを作成する必要があるがどうやるの？
+  - `libcuda.so`自体は`usr\local\cuda-11.7\targets\x86_64-linux\lib\stubs\libcuda.so`に存在するが、`libcuda.so.1`は存在しない
+  - ただ`libcuda.so.1`がどの環境変数によって参照されているのかが分からない
+  - `ubuntu20.04_gpu`では次のような記述がある
+    - ```bash
+        # add missing symlink 
+        ln -s /usr/local/cuda-${CUDA_PKG_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${CUDA_PKG_VERSION}/lib64/stubs/libcuda.so.1
+      ```
+    - `libcuda.so.1`から`libcuda.so`へのシンボリックリンクが作成するコマンド
+      - ただ`/usr/local/cuda-${CUDA_PKG_VERSION}/lib64/stubs/`内には`libcuda.so.1`は存在していない
+        - cudaが複数あるけどこれはよいのか...(`cuda/      cuda-11/   cuda-11.7/`)
+      - ちなみに
+        ```bash
+        /usr/local/cuda-11.7$ ls -n
+                              lrwxrwxrwx 1 0 0    24 Jun  9 10:10 lib64 -> targets/x86_64-linux/lib
+        ```
+        となっているので`targets/x86_64-linux/lib`配下のファイルはすべて`lib64`配下からシンボリックリンクとして作成されている
+  - ひとまず`sudo ln -s libcuda.so libcuda.so.1`コマンドを`usr\local\cuda-11.7\targets\x86_64-linux\lib\stubs`で実行
+    - ただ相変わらず同じエラーが出る
+    - もう一回ビルドをやってみる
+    - `mkdir build`をした段階ではもちろんフォルダは空
+    - 次のコードを行うと`build`フォルダの中にファイルが生成
+      ```bash
+      cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes ../cmake
+      ```
+    - 次のコードを行うと`CMakeCXXCompiler.cmake`内の最初の行が`set(CMAKE_CXX_COMPILER "/home/masa/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper")`に置き換わる
+      ```bash
+      cmake -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper ../cmake
+      ```
+    - `make`を走らせる(走らせるときには`./lmp -in in.foobar`としないとダメ)
+      - やっぱりパッケージが全部入っていない...
+    - `..cmake`を常に書き込みしていた...
+    - 正しい手順は
+      ```bash
+      mkdir build
+      cd build
+      cmake ../cmake # ベースとなる構成ファイルをcmakeから取ってくる
+      cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper . # 最後は.(ドット)のみ!
+      ```
+    - 結果は変わらない
+  - `LD_LIBRARY_PATH`に`usr\local\cuda-11.7\targets\x86_64-linux\lib\stubs`のパスを追加してもダメだった
+    - ちなみに`PATH=$PATH:/usr/local/cuda-11.7/bin`の中で`$PATH`が付いているのは、既存の環境変数を上書きしないようにするため(環境変数は`:`で複数設定できる)
+    - 環境変数に追加してもだめ、シンボリックリンクを複数作成してもダメ
+  - ビルドオプションで`-D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper`の部分を外してみた。
+    - `Illegal instruction`の出力が出た
+      - そもそもなぜこのオプションを追加したのか記録が残っていない...
+    - 
+    - 
+
 
 
 ## TODO
@@ -515,9 +575,6 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
 3. 初期密度や間隙比をどのように調整するのか
 4. 粒子に適切な重さを与えることができるのか
 5. 境界面に作用する応力をデータとして吐き出すことができるのか
-6. このREADMEの情報追加
-   1. WSL2のUbuntuセットアップ手順
-   2. LAMMPSのインストール手順
 
 
    
