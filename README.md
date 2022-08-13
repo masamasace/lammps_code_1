@@ -217,7 +217,7 @@ cd build
 
 ```bash
 cmake ../cmake 
-cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes -D PKG_KOKKOS=yes -D Kokkos_ARCH_SKX=yes -D Kokkos_ENABLE_OPENMP=yes -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper . 
+cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes -D PKG_KOKKOS=yes -D Kokkos_ARCH_BDW=yes -D Kokkos_ENABLE_OPENMP=yes -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper . 
 ```
 
 そしてビルドを実行します。

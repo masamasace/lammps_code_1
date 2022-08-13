@@ -1,53 +1,5 @@
 # 作業メモ
 ここからは勉強過程で残した作業用メモです。参考になるかもしれないし、ならないかもしれません。
-##  必要なモジュールを含めてLAMMPSをビルドする
-ここからはWindows Terminalの話になります。まず開いた直後の状態から上のタブの下矢印(v)をクリックしてください。そしてUbuntu 22.04 LTSをクリックしてください。
-![初期画面](./img/2022-06-26_16h29_53.png) 
-そうするとUbuntuのターミナル画面が表示されると思います。(PowerShellの方は使わないので×で消してもらって大丈夫です。)
-![Ubuntuの画面](./img/2022-06-26_16h24_15.png) 
-今回のPCのUbuntuはCUI(キャラクタユーザインターフェース)なので、全部キーボードの入力で操作をしていきます。具体的には&#36;マークの続きにコマンド(指令)を入力し、その結果を見つつさらに新しいコマンドを打つ形になります。まずこの画面で`ls`と打ちエンターを押してみてください。ちなみに`ls`はlist segmentsの略です(&#36;と`ls`の間にあるスペースは自動で入っているものなので気にしないでください)。
-そうすると次の文字列が出力されたと思います。
-
-```bash
-get-pip.py  lammps-23Jun2022  lammps-stable.tar.gz
-```
-
-![lsの結果](./img/2022-06-26_16h40_16.png) 
-このlsというコマンドは、今いるフォルダの中にあるファイルとフォルダをすべて表示する
-というコマンドです。今回の場合get-pip.py、lammps-23Jun2022、lammps-stable.tar.gzの3つのファイルorフォルダが存在するため、このように表示されています。ちなみに文字色には意味があり、以下の通りです。
-
-- 青：ディレクトリ
-- 緑：実行可能または認識されたデータファイル
-- スカイブルー：シンボリックリンクファイル
-- 背景が黒の黄色：デバイス
-- ピンク：グラフィック画像ファイル
-- 赤：アーカイブファイル
-- 背景が黒の赤：リンク切れ
-
-次に出てきた入力欄に`cd ./lammps-23Jun2022/`と入力してみてください。ちなみに`cd ./l`まで打った後にtabキーを押すと、残りの文字列が自動で入力されます。(この機能は該当する候補が一つのみの時にしかできません)
-
-これをすると&#36;の前の部分に`/lammps-23Jun2022`が加わったと思います。`cd`コマンドはchange directoryの略で、ディレクトリ(フォルダ)を移動できるコマンドです。つまり`cd ./lammps-23Jun2022/`コマンドによって、一つ下の階層のフォルダに移ることができるのです。
-
-また一つ上の階層に戻りたいときは`cd ../`と打ちエンターキーを押すとできます。さらに続けて次の階層に降りたいときは、`cd ./lammps-23Jun2022/`と入力し **エンターキーを押さずに**そのままtabキーを押すと`lammps-23Jun2022`というフォルダの中にあるフォルダを一覧で表示できます。
-
-さてここまで練習した機能を使って、`~/lammps-23Jun2022/build`のフォルダまで移動してください。するとこのような画面になると思います。
-
-![buildまで移動した結果](./img/2022-06-26_17h10_00.png) 
-
-ここからLAMMPSのビルドという作業に移ります。ビルドは簡単に言うとプログラミング言語で
-書かれたソースコードをもとにして、実行可能ファイルを作成することです。Windowsだとファイル名の一番後ろの拡張子が.exeとなったファイルをダウンロードすることがあるかと思います。ビルドとは人間が読める状態のソースコードから、exeファイルを作成する作業だと考えてください。
-
-今回はcmakeというC言語あるいはC++プロジェクト向けのビルドツールを使います。ただそんなに難しい作業ではありません。コマンドラインに次の文字列を入力してください。
-
-```bash
-cmake -D PKG_GPU=yes -D GPU_API=cuda../cmake
-cmake -D PKG_GRANULAR=yes ../cmake
-cmake -D BUILD_MPI=yes ../cmake
-```
-
-`cmake`はこれからcmakeというビルド作業をするよ、という合図です。もう少し正確に言うと、`../cmake`にあるcmake用のスクリプトを読んできて、ビルドの構成を確認するというコマンドになります。
-
-また`-D`オプションは、cmake用のスクリプトにおいて変数を変更(上書き)するためのコマンドです。そして`PKG_GPU=yes`の部分で、通常時には無効化されたGraphical User Interface(GPU)に関するパッケージを有効化してくださいという指令を書いています。同様に`PKG_GRANULAR=yes`では粒状体用のパッケージを有効化するという意味になります。`BUILD_MPI=yes`は並列処理によってビルドを行っていくださいという指令です。
 
 ## GPUあるいはマルチスレッドの検証
 GPGPUが本当にどれぐらい効くのか、またマルチスレッドはどのぐらい効くのか、それを検証してみます。
@@ -559,8 +511,36 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
   - ビルドオプションで`-D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper`の部分を外してみた。
     - `Illegal instruction`の出力が出た
       - そもそもなぜこのオプションを追加したのか記録が残っていない...
-    - 
-    - 
+    - `ldd ./lmp`で見ると`libcuda.so.1`の問題は解決している
+      - あれそうしたら、nvcc_wrapperの部分が問題なのでは？？
+    - もう一度nvccも含めてビルドしなおしたら`Illegal instruction`のエラーが出るようになった
+  - 明日に向けての可能性の整理
+    - CUDAのインストールがおかしい
+    - KOKKOSのオプションの設定がおかしい
+    - cmakeでデバッグオプションみたいなものってつけれれないの？
+  - 回った...！
+    - 正解はKOKKOSのオプションでした...
+      - 今回使っているCPUはIntel Core i9-9900Kで世代としてはCoffee Lakeに相当
+      - [KOKKOSのオプション](https://docs.lammps.org/stable/Build_extras.html#kokkos)では以下のように書かれていて、Coffee Lake世代はSkylake世代よりも後だからArch-IDをSKXに設定していた
+        ```
+        Arch-ID | Description
+        BDW     | Intel Broadwell Xeon E-class CPU (AVX 2 + transactional mem)
+        SKX     | Intel Sky Lake Xeon E-class HPC CPU (AVX512 + transactional mem)
+        ```
+      - ただ[Intelのサイト](https://www.intel.co.jp/content/www/jp/ja/products/sku/186605/intel-core-i99900k-processor-16m-cache-up-to-5-00-ghz/specifications.html)にもあるように9900KはAVX2までしか対応をしていない。そのためArch-IDはBDWに設定するのが正解だった。
+  - マジで長かった...
+
+## `Cuda driver error 34 in call at file '/home/ms/lammps-stable_23Jun2022/lib/gpu/geryon/nvd_device.h' in line 326.`に関する解決策
+- 今度は別のエラー
+- GPUを使ったサンプルコードを回す際に`mpirun -np 1 ./lmp -sf gpu -pk gpu 0 -in ../code/sample2.in`を入力
+- ```bash
+    Cuda driver error 34 in call at file '/home/ms/lammps-stable_23Jun2022/lib/gpu/geryon/nvd_device.h' in line 326.
+  ```
+  というエラーが出る。
+  - このエラーコードは[Nvidiaのサイト](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html#:~:text=cudaErrorStubLibrary)によると`cudaErrorStubLibrary`に該当するものらしい
+  - 内容としてはdebug用に使うはずのスタブライブラリを使用しているため、発生するもの
+  - [このサイト](https://forums.developer.nvidia.com/t/checkmacros-cpp-272-error-code-1-cuda-runtime-cuda-driver-is-a-stub-library/202911/11)が参考になりそう
+    - おそらくパスをしっかりと設定していないことが原因か？
 
 
 
