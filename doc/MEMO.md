@@ -598,6 +598,9 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
 3. 初期密度や間隙比をどのように調整するのか
 4. 粒子に適切な重さを与えることができるのか
 5. 境界面に作用する応力をデータとして吐き出すことができるのか
+6. .profileと.bashrcの違い
+7. CUDAプログラミングの基礎
+8. MPIの基礎
 
 
    
