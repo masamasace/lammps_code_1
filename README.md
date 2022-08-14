@@ -58,9 +58,16 @@ Linuxの環境を作るには現在大きく分けて二つの方法がありま
 ```bash
 wsl --install
 ```
-そうすると色々な文字が表れると思います。最後に`要求された操作は正常に終了しました。変更を有効にするには、システムを再起動する必要があります`という文が出ますので、PCを再起動しましょう。
+こののち、色々な文字が表れると思います。最後に`要求された操作は正常に終了しました。変更を有効にするには、システムを再起動する必要があります`という文が出ますので、PCを再起動しましょう。
 
-もしインストールができず、長い文字列が表示された場合には、
+![WSL2のインストール完了](./img/2022-07-16_12h23_07.png)
+
+***
+
+<details>
+<summary>
+Ubuntuがインストールされずにwslコマンドのガイドが表示された場合
+</summary>
 
 ```bash
 wsl --list --online
@@ -74,20 +81,29 @@ wsl --install -d Ubuntu-20.04
 
 のコマンドを実行してください。
 
-![WSL2のインストール完了](./img/2022-07-16_12h23_07.png) 
+</details>
 
-再起動すると英語でユーザー名とパスワードを聞いてくる画面が自動で出てきます。ユーザー名は個人が特定されにくいものがいいでしょう。
-パスワードは入力しても何も画面には反映されませんが仕様です。再入力も同じものを入力しましょう。
+<details>
+<summary>
+「ファイル システムの 1 つをマウント中にエラーが発生しました」というエラーが表示される場合
+</summary>
 
-なお`ファイル システムの 1 つをマウント中にエラーが発生しました。詳細については、「dmesg」を実行してください。`というコメントが出た場合には、ユーザー名とパスワードの入力後に一旦画面を閉じて、管理者権限で起動したWindows Terminalの欄に次の2つのコマンドを一つずつ入力してください。
+`ファイル システムの 1 つをマウント中にエラーが発生しました。詳細については、「dmesg」を実行してください。`というコメントが出た場合には、ユーザー名とパスワードの入力後に一旦画面を閉じて、管理者権限で起動したWindows Terminalの欄に次の2つのコマンドを一つずつ入力してください。
 
 ```bash
 wsl.exe --update
 wsl.exe --shutdown
 ```
+この状態でも`ファイル システム~`のメッセージが出る場合には、`dmesg | grep -i error`のコマンドを打った後の結果を見せてください。
+</details>
+
+***
+
+再起動すると英語でユーザー名とパスワードを聞いてくる画面が自動で出てきます。ユーザー名は個人が特定されにくいものがいいでしょう。
+パスワードは入力しても何も画面には反映されませんが仕様です。再入力も同じものを入力しましょう。
 
 これらの作業が終了したらWindows Terminalを開いた直後の状態から、上のタブの下矢印(v)をクリックしてください。そして`Ubuntu`あるいは`Ubuntu 22.04 LTS`をクリックしてください。
-この状態でも`ファイル システム~`のメッセージが出る場合には、`dmesg | grep -i error`のコマンドを打った後の結果を見せてください。
+
 
 ![Ubuntuの選択](./img/2022-06-26_16h29_53.png) 
 
@@ -105,10 +121,7 @@ sudo apt upgrade -y
 続けてLAMMPSの実行に必要なパッケージをインストールしていきます。次のコマンドを打って実行してください。
 
 ```bash
-sudo apt install -y cmake build-essential ccache gfortran openmpi-bin libopenmpi-dev \
-                    libfftw3-dev libjpeg-dev libpng-dev python3-dev python3-pip \
-                    python3-virtualenv libblas-dev liblapack-dev libhdf5-serial-dev \
-                    hdf5-tools clang-format
+sudo apt install -y cmake build-essential ccache gfortran openmpi-bin libopenmpi-dev libfftw3-dev libjpeg-dev libpng-dev python3-dev python3-pip python3-virtualenv libblas-dev liblapack-dev libhdf5-serial-dev hdf5-tools clang-format
 ```
 
 ## LAMMPSのダウンロード
@@ -179,13 +192,14 @@ make -j 4
 cd ~
 ```
 
-そして次のコマンドを上から一つずつ実行していってください
+そして次のコマンドを上から一つずつ実行していってください。4行目のアスタリスクの部分は3行目のコマンドの実行結果に表示される文字列を参考に書き直してください。
 
 ```bash
 wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
 sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
-sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/3bf863cc.pub
-sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/ /"
+wget https://developer.download.nvidia.com/compute/cuda/11.7.1/local_installers/cuda-repo-wsl-ubuntu-11-7-local_11.7.1-1_amd64.deb
+sudo dpkg -i cuda-repo-wsl-ubuntu-11-7-local_11.7.1-1_amd64.deb
+sudo cp /var/cuda-repo-wsl-ubuntu-11-7-local/cuda-*-keyring.gpg /usr/share/keyrings/
 sudo apt-get update
 sudo apt-get -y install cuda
 ```
@@ -217,7 +231,7 @@ cd build
 
 ```bash
 cmake ../cmake 
-cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes -D PKG_KOKKOS=yes -D Kokkos_ARCH_BDW=yes -D Kokkos_ENABLE_OPENMP=yes -D BUILD_OMP=yes -D Kokkos_ARCH_PASCAL61=yes -D Kokkos_ENABLE_CUDA=yes -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper . 
+cmake -D PKG_GPU=yes -D GPU_API=cuda -D GPU_ARCH=sm_61 -D PKG_GRANULAR=yes -D PKG_KOKKOS=yes -D Kokkos_ARCH_BDW=yes -D Kokkos_ENABLE_OPENMP=yes -D BUILD_OMP=yes -D Kokkos_ARCH_TURING75=yes -D Kokkos_ENABLE_CUDA=yes -D CMAKE_CXX_COMPILER=${HOME}/lammps-stable_23Jun2022/lib/kokkos/bin/nvcc_wrapper . 
 ```
 
 そしてビルドを実行します。

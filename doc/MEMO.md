@@ -530,7 +530,7 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
       - ただ[Intelのサイト](https://www.intel.co.jp/content/www/jp/ja/products/sku/186605/intel-core-i99900k-processor-16m-cache-up-to-5-00-ghz/specifications.html)にもあるように9900KはAVX2までしか対応をしていない。そのためArch-IDはBDWに設定するのが正解だった。
   - マジで長かった...
 
-## `Cuda driver error 34 in call at file '/home/ms/lammps-stable_23Jun2022/lib/gpu/geryon/nvd_device.h' in line 326.`に関する解決策
+## CUDAのドライバエラーに関する解決策
 - 今度は別のエラー
 - GPUを使ったサンプルコードを回す際に`mpirun -np 1 ./lmp -sf gpu -pk gpu 0 -in ../code/sample2.in`を入力
 - ```bash
@@ -541,6 +541,48 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
   - 内容としてはdebug用に使うはずのスタブライブラリを使用しているため、発生するもの
   - [このサイト](https://forums.developer.nvidia.com/t/checkmacros-cpp-272-error-code-1-cuda-runtime-cuda-driver-is-a-stub-library/202911/11)が参考になりそう
     - おそらくパスをしっかりと設定していないことが原因か？
+    - `LD_LIBRARY_PATH`を通しても同様のエラーが出る
+    - どうやら`libcuda.so`は二つの場所にインストールされるらしいが、今回の場合はstub内にしかインストールされていない
+- cudaのインストール方法が間違っている？
+  - インストール方法を[NVidiaのこのサイトの方法](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_local)に変えた
+  - CUDA 11.7のホスト用ドライバのバージョンを満たしていなかった...([参考サイト](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html))
+    - アップデートした
+  - [このサイト](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_local)を参考に`./deviceQuery`を動かす
+    - devicequeryのパスは`/usr/local/cuda-11.7/extras/demo_suite`
+  - 動いた！
+  - しかし相変わらず`libcuda.so`は一つしかない...
+  - lammpsのコードも動くか...?
+  - 動いた！
+
+## KOKKOS関連のエラーに関する解決策
+- `mpirun -np 1 ./lmp -k on g 1 -sf kk -in ../code/sample2.in`のコードを実行したら次の警告のエラーが出た
+- ```bash
+    1. WARNING: When using a single thread, the Kokkos Serial backend (i.e. Makefile.kokkos_mpi_only) gives better performance than the OpenMP backend (src/KOKKOS/kokkos.cpp:217)
+    2. Kokkos::OpenMP::initialize WARNING: OMP_PROC_BIND environment variable not set
+    3. ERROR: Invalid atom_style command (src/atom_vec.cpp:141)
+  ```
+- 1の警告について
+  - 未調査
+- 2の警告について
+  - 環境変数に`export OMP_PROC_BIND="TRUE"`を追加することによって解決した
+  - しかし何をしているのかは良く分かっていない
+- 3のエラーについて
+  - atom_styleはKOKKOSの中でもsphereは適用可能なはず
+  - `atom_style sphere 0`を`atom_style sphere`にしたら治った
+- 上記のエラーが解決後、次のエラーが出た
+  - `ERROR: Cannot yet use fix pour with the KOKKOS package (src/GRANULAR/fix_pour.cpp:59)`
+  - `pour`コマンドは使えませんよという意味
+  - 代用できるコマンドはいくつかありそうだが、それがKOKKOSに対応しているかどうかをどのように調べればよいのか...
+    - おそらく`/src/KOKKOS/`の中にあるものから一つずつそれっぽいのを探していくしかない...
+    - `create_atoms`コマンドと`set`コマンドで乗り切った
+- 次のエラー
+  - ```bash
+      ERROR: Must use half neighbor list with gran/hooke/history/kk (src/KOKKOS/pair_gran_hooke_history_kokkos.cpp:92)
+    ```
+  - 半分の近傍リストを使えという意味だが、neighbor listとソースコードがよく読み切れていない...
+
+- 壁から作用する力を計算するコマンドあった！
+  - この[リンク](https://docs.lammps.org/fix_wall_gran.html)から
 
 
 
