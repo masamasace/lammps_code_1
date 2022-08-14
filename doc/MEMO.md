@@ -583,6 +583,7 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
 
 - 壁から作用する力を計算するコマンドあった！
   - この[リンク](https://docs.lammps.org/fix_wall_gran.html)から
+  - ただKOKKOSでは対応していないコマンドのはずなのに、解析時にエラーがでないのはかなり変...
 
 
 
