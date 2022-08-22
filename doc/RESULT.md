@@ -1,4 +1,167 @@
 # ベンチマーク結果
+
+## 2022年8月17日分
+KOKKOSなし: `../build_raw/lmp -in sample2.in`
+
+KOKKOSあり: `mpirun -np 1 ../build/lmp -k on g 1 -sf kk -pk kokkos neigh half comm no -in sample2.in`
+
+### まとめ
+- KOKKOSによる高速化がそれほど大きくない(粒子数数万オーダーからCPU+GPUが速くなるが2倍程度)
+- Commに時間がかかるのは、CPUとGPU間の通信の影響によるもの？どのようにPCIe通信量を定量化することが出来る？
+- CUDAが最大50%までしか使用されていない
+- `kokkos neigh half comm no`を付けなかった場合`ERROR: Must use half neighbor list with gran/hooke/history/kk (src/KOKKOS/pair_gran_hooke_history_kokkos.cpp:92)`というエラーが出る。
+  - またこの引数を入れると粒子系全体の周期的な振動が収束しなくなる。
+- HWiNFOでGPUの`Performance Limitation - Reliability Voltage`がずっとYesになっている。
+- というか`MPIRUN -n 16`にしても全くコアが使用されていない。
+
+
+![まとめ](../img/20220817_result.png)
+
+### 3000個 3cm KOKKOSなし
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 12.951     | 12.951     | 12.951     |   0.0 | 71.50
+Neigh   | 0.17906    | 0.17906    | 0.17906    |   0.0 |  0.99
+Comm    | 0.0085003  | 0.0085003  | 0.0085003  |   0.0 |  0.05
+Output  | 0.54386    | 0.54386    | 0.54386    |   0.0 |  3.00
+Modify  | 4.296      | 4.296      | 4.296      |   0.0 | 23.72
+Other   |            | 0.1344     |            |       |  0.74
+
+Total # of neighbors = 24508
+Ave neighs/atom = 8.2103853
+Neighbor list builds = 173
+Dangerous builds = 0
+Total wall time: 0:00:18
+```
+
+### 3000個 3cm KOKKOSあり
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 9.946      | 9.946      | 9.946      |   0.0 | 15.00
+Neigh   | 0.27758    | 0.27758    | 0.27758    |   0.0 |  0.42
+Comm    | 16.897     | 16.897     | 16.897     |   0.0 | 25.49
+Output  | 0.50225    | 0.50225    | 0.50225    |   0.0 |  0.76
+Modify  | 34.117     | 34.117     | 34.117     |   0.0 | 51.46
+Other   |            | 4.554      |            |       |  6.87
+
+Total # of neighbors = 21424
+Ave neighs/atom = 7.2256324
+Neighbor list builds = 352
+Dangerous builds = 0
+Total wall time: 0:01:07
+```
+
+### 12500個 2cm KOKKOSなし
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 57.339     | 57.339     | 57.339     |   0.0 | 74.30
+Neigh   | 1.422      | 1.422      | 1.422      |   0.0 |  1.84
+Comm    | 0.033539   | 0.033539   | 0.033539   |   0.0 |  0.04
+Output  | 0.96323    | 0.96323    | 0.96323    |   0.0 |  1.25
+Modify  | 16.809     | 16.809     | 16.809     |   0.0 | 21.78
+Other   |            | 0.6071     |            |       |  0.79
+
+Total # of neighbors = 104072
+Ave neighs/atom = 8.3800628
+Neighbor list builds = 312
+Dangerous builds = 0
+Total wall time: 0:01:17
+```
+
+### 12500個 2cm KOKKOSあり
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 10.13      | 10.13      | 10.13      |   0.0 | 12.73
+Neigh   | 0.75902    | 0.75902    | 0.75902    |   0.0 |  0.95
+Comm    | 19.708     | 19.708     | 19.708     |   0.0 | 24.76
+Output  | 0.86979    | 0.86979    | 0.86979    |   0.0 |  1.09
+Modify  | 44.268     | 44.268     | 44.268     |   0.0 | 55.62
+Other   |            | 3.852      |            |       |  4.84
+
+Total # of neighbors = 91608
+Ave neighs/atom = 7.3693186
+Neighbor list builds = 880
+Dangerous builds = 0
+Total wall time: 0:01:20
+```
+
+### 100000個 1cm KOKKOSなし
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 534.15     | 534.15     | 534.15     |   0.0 | 73.19
+Neigh   | 27.593     | 27.593     | 27.593     |   0.0 |  3.78
+Comm    | 0.70002    | 0.70002    | 0.70002    |   0.0 |  0.10
+Output  | 2.3024     | 2.3024     | 2.3024     |   0.0 |  0.32
+Modify  | 152.45     | 152.45     | 152.45     |   0.0 | 20.89
+Other   |            | 12.57      |            |       |  1.72
+
+Total # of neighbors = 746375
+Ave neighs/atom = 7.5408933
+Neighbor list builds = 723
+Dangerous builds = 0
+Total wall time: 0:12:09
+```
+
+### 100000個 1cm KOKKOSあり
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 34.601     | 34.601     | 34.601     |   0.0 |  9.98
+Neigh   | 13.133     | 13.133     | 13.133     |   0.0 |  3.79
+Comm    | 85.914     | 85.914     | 85.914     |   0.0 | 24.78
+Output  | 2.0486     | 2.0486     | 2.0486     |   0.0 |  0.59
+Modify  | 200.99     | 200.99     | 200.99     |   0.0 | 57.96
+Other   |            | 10.07      |            |       |  2.90
+
+Total # of neighbors = 615840
+Ave neighs/atom = 6.1737727
+Neighbor list builds = 4153
+Dangerous builds = 0
+Total wall time: 0:05:49
+```
+
+### 500000個 0.6cm KOKKOSなし
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 2912       | 2912       | 2912       |   0.0 | 70.97
+Neigh   | 246.28     | 246.28     | 246.28     |   0.0 |  6.00
+Comm    | 7.1115     | 7.1115     | 7.1115     |   0.0 |  0.17
+Output  | 5.1583     | 5.1583     | 5.1583     |   0.0 |  0.13
+Modify  | 861.98     | 861.98     | 861.98     |   0.0 | 21.01
+Other   |            | 70.86      |            |       |  1.73
+
+Total # of neighbors = 3686034
+Ave neighs/atom = 7.4271028
+Neighbor list builds = 1246
+Dangerous builds = 75
+Total wall time: 1:08:24
+```
+
+### 500000個 0.6cm KOKKOSあり
+```console
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 120.18     | 120.18     | 120.18     |   0.0 |  7.00
+Neigh   | 146.39     | 146.39     | 146.39     |   0.0 |  8.53
+Comm    | 408.26     | 408.26     | 408.26     |   0.0 | 23.78
+Output  | 4.4039     | 4.4039     | 4.4039     |   0.0 |  0.26
+Modify  | 968.73     | 968.73     | 968.73     |   0.0 | 56.42
+Other   |            | 69.04      |            |       |  4.02
+
+Total # of neighbors = 2941284
+Ave neighs/atom = 5.8941087
+Neighbor list builds = 12934
+Dangerous builds = 43
+Total wall time: 0:28:44
+```
+
+
 ## 2022年7月分
 
 結果のまとめは以下の通り
@@ -164,153 +327,3 @@ Dangerous builds = 0
 Total wall time: 0:00:04
 ```
 
-
-
-## 2022年8月17日分
-KOKKOSなし: `../build_raw/lmp -in sample2.in`
-
-KOKKOSあり: `mpirun -np 1 ../build/lmp -k on g 1 -sf kk -pk kokkos neigh half comm no -in sample2.in`
-
-### 3000個 3cm KOKKOSなし
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 12.951     | 12.951     | 12.951     |   0.0 | 71.50
-Neigh   | 0.17906    | 0.17906    | 0.17906    |   0.0 |  0.99
-Comm    | 0.0085003  | 0.0085003  | 0.0085003  |   0.0 |  0.05
-Output  | 0.54386    | 0.54386    | 0.54386    |   0.0 |  3.00
-Modify  | 4.296      | 4.296      | 4.296      |   0.0 | 23.72
-Other   |            | 0.1344     |            |       |  0.74
-
-Total # of neighbors = 24508
-Ave neighs/atom = 8.2103853
-Neighbor list builds = 173
-Dangerous builds = 0
-Total wall time: 0:00:18
-```
-
-### 3000個 3cm KOKKOSあり
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 9.946      | 9.946      | 9.946      |   0.0 | 15.00
-Neigh   | 0.27758    | 0.27758    | 0.27758    |   0.0 |  0.42
-Comm    | 16.897     | 16.897     | 16.897     |   0.0 | 25.49
-Output  | 0.50225    | 0.50225    | 0.50225    |   0.0 |  0.76
-Modify  | 34.117     | 34.117     | 34.117     |   0.0 | 51.46
-Other   |            | 4.554      |            |       |  6.87
-
-Total # of neighbors = 21424
-Ave neighs/atom = 7.2256324
-Neighbor list builds = 352
-Dangerous builds = 0
-Total wall time: 0:01:07
-```
-
-### 12500個 2cm KOKKOSなし
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 57.339     | 57.339     | 57.339     |   0.0 | 74.30
-Neigh   | 1.422      | 1.422      | 1.422      |   0.0 |  1.84
-Comm    | 0.033539   | 0.033539   | 0.033539   |   0.0 |  0.04
-Output  | 0.96323    | 0.96323    | 0.96323    |   0.0 |  1.25
-Modify  | 16.809     | 16.809     | 16.809     |   0.0 | 21.78
-Other   |            | 0.6071     |            |       |  0.79
-
-Total # of neighbors = 104072
-Ave neighs/atom = 8.3800628
-Neighbor list builds = 312
-Dangerous builds = 0
-Total wall time: 0:01:17
-```
-
-### 12500個 2cm KOKKOSあり
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 10.13      | 10.13      | 10.13      |   0.0 | 12.73
-Neigh   | 0.75902    | 0.75902    | 0.75902    |   0.0 |  0.95
-Comm    | 19.708     | 19.708     | 19.708     |   0.0 | 24.76
-Output  | 0.86979    | 0.86979    | 0.86979    |   0.0 |  1.09
-Modify  | 44.268     | 44.268     | 44.268     |   0.0 | 55.62
-Other   |            | 3.852      |            |       |  4.84
-
-Total # of neighbors = 91608
-Ave neighs/atom = 7.3693186
-Neighbor list builds = 880
-Dangerous builds = 0
-Total wall time: 0:01:20
-```
-
-### 100000個 1cm KOKKOSなし
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 534.15     | 534.15     | 534.15     |   0.0 | 73.19
-Neigh   | 27.593     | 27.593     | 27.593     |   0.0 |  3.78
-Comm    | 0.70002    | 0.70002    | 0.70002    |   0.0 |  0.10
-Output  | 2.3024     | 2.3024     | 2.3024     |   0.0 |  0.32
-Modify  | 152.45     | 152.45     | 152.45     |   0.0 | 20.89
-Other   |            | 12.57      |            |       |  1.72
-
-Total # of neighbors = 746375
-Ave neighs/atom = 7.5408933
-Neighbor list builds = 723
-Dangerous builds = 0
-Total wall time: 0:12:09
-```
-
-### 100000個 1cm KOKKOSあり
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 34.601     | 34.601     | 34.601     |   0.0 |  9.98
-Neigh   | 13.133     | 13.133     | 13.133     |   0.0 |  3.79
-Comm    | 85.914     | 85.914     | 85.914     |   0.0 | 24.78
-Output  | 2.0486     | 2.0486     | 2.0486     |   0.0 |  0.59
-Modify  | 200.99     | 200.99     | 200.99     |   0.0 | 57.96
-Other   |            | 10.07      |            |       |  2.90
-
-Total # of neighbors = 615840
-Ave neighs/atom = 6.1737727
-Neighbor list builds = 4153
-Dangerous builds = 0
-Total wall time: 0:05:49
-```
-
-### 500000個 0.6cm KOKKOSなし
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 2912       | 2912       | 2912       |   0.0 | 70.97
-Neigh   | 246.28     | 246.28     | 246.28     |   0.0 |  6.00
-Comm    | 7.1115     | 7.1115     | 7.1115     |   0.0 |  0.17
-Output  | 5.1583     | 5.1583     | 5.1583     |   0.0 |  0.13
-Modify  | 861.98     | 861.98     | 861.98     |   0.0 | 21.01
-Other   |            | 70.86      |            |       |  1.73
-
-Total # of neighbors = 3686034
-Ave neighs/atom = 7.4271028
-Neighbor list builds = 1246
-Dangerous builds = 75
-Total wall time: 1:08:24
-```
-
-### 500000個 0.6cm KOKKOSあり
-```console
-Section |  min time  |  avg time  |  max time  |%varavg| %total
----------------------------------------------------------------
-Pair    | 120.18     | 120.18     | 120.18     |   0.0 |  7.00
-Neigh   | 146.39     | 146.39     | 146.39     |   0.0 |  8.53
-Comm    | 408.26     | 408.26     | 408.26     |   0.0 | 23.78
-Output  | 4.4039     | 4.4039     | 4.4039     |   0.0 |  0.26
-Modify  | 968.73     | 968.73     | 968.73     |   0.0 | 56.42
-Other   |            | 69.04      |            |       |  4.02
-
-Total # of neighbors = 2941284
-Ave neighs/atom = 5.8941087
-Neighbor list builds = 12934
-Dangerous builds = 43
-Total wall time: 0:28:44
-```
