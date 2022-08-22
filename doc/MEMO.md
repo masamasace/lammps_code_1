@@ -291,6 +291,10 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
      - `bitmask`は最大32個のグループを識別するもの
        - ということは`mask[i]`も`int`型でないといけない
      - ここで打ち止め、もう少しlammpsのコードを触ってからこちらに戻ってくる。
+     - `fix wall_gran`コマンド
+       - この[リンク](https://docs.lammps.org/fix_wall_gran.html)から
+       - ただKOKKOSでは対応していないコマンドのはずなのに、解析時にエラーがでないのはかなり変...
+
 
 ## `lmp: error while loading shared libraries: libcuda.so.1`の解決策について
 - このエラーに行きつく前のエラー達
@@ -419,16 +423,53 @@ CMake Error at Modules/Packages/GPU.cmake:44 (message):
     ```
   - 半分の近傍リストを使えという意味だが、neighbor listとソースコードがよく読み切れていない...
     - [Lammpsのこのページ](https://docs.lammps.org/Developer_par_neigh.html)が使えそう
-    - 結果として` mpirun -np 1 ../build/lmp -k on g 1 -sf kk -pk kokkos neigh half comm no -in sample2.in`の`neigh half comm no`を追加することによってエラーはでなくなったが、どうやら結果がおかしい。
+    - 結果として`mpirun -np 1 ../build/lmp -k on g 1 -sf kk -pk kokkos neigh half comm no -in sample2.in`の`neigh half comm no`を追加することによってエラーはでなくなったが、どうやら結果がおかしい。
     - 具体的にはこのコマンドを入れると、粒子系全体の周期的な振動が収束しなくなる。
-- HWiNFOでGPUのReliability VoltageがずっとYesになっている。
-- というかMPIRUN -n 16にしても全くコアが使用されていない。
+  - HWiNFOでGPUの`Reliability Voltage`がずっとYesになっている。
+  - というか`mpirun -n 16`にしても全くコアが使用されていない。
 
-- 壁から作用する力を計算するコマンドあった！
-  - `fix wall_gran`コマンド
-  - この[リンク](https://docs.lammps.org/fix_wall_gran.html)から
-  - ただKOKKOSでは対応していないコマンドのはずなのに、解析時にエラーがでないのはかなり変...
+## 20220819段階での状況の整理
+- CPUのみによる解析は行える(シングルスレッドによる解析)
+- CPU+GPUによる解析は行えるが結果の妥当性の確認が必要
 
+- 今後の方向性
+  1. GPUを使用した更なる高速化
+     - ` ERROR: Must use half neighbor list~`を無くす
+       - KOKKOSとLammpsの近傍リスト構造の勉強
+     - `mpirun`に関する勉強
+       - (上記に付随して)マルチスレッド、タスク、プロセッサーに関する勉強
+  2. CPUのみの解析結果を出す
+     - 壁面作用応力の抽出
+     - 粒子位置と作用応力のテキストファイルの抽出
+     - 可視化手法に関する勉強
+
+## 20220819の作業メモ
+  - Neighbor Listsについて
+    - LAMMPSでは力の効率的な計算のために、ベルレリスト(Verlet List)を用いている。
+    - ベルレリストとは、分子動力学で使用されるデータ構造である。
+    - 当該粒子からカットオフ半径(厳密にはカットオフ半径にスキン距離を足した距離)内に存在する粒子のインデックスを作成し、カットオフ半径よりも遠い粒子の相互作用は無視するというもの
+      - 今回使用している相互作用モデル(`gran/hooke/history`)では2粒子の相対距離が2粒子の半径の和を下回った時に作用する力であるため、カットオフ半径はそれほど大きくする必要はない(?)
+        - カットオフ半径は粒子半径+スキン距離でよいかもしれない
+      - ただタイムステップが長い場合には粒子の移動量が大きくなるため、安定的な解析をするためにはカットオフ半径を大きくする必要があるかもしれない
+    - タイムステップ毎に近傍粒子のインデックスを更新するのは計算量を増大させるため、各粒子が等速直線運動をしたと仮定して、その移動距離がスキン距離の半分を超えた段階でリストを更新する
+      - 実際には粒子はどこかに衝突するので、この予想移動距離は実際の値とは異なる。(ただ予想移動距離が最大値とは限らないのでは...(質量のより重く速度の大きい粒子が真後ろから衝突して運動量が増加するなど)→インデックスを更新したら実際には全部の粒子が外に出てしまっていたなんてこともありうる？)
+      - スキン距離の更新はor条件(どれか一つの粒子の予想移動距離がSKIN距離の半分を上回ったら更新)
+    - `For that atoms are spatially binned and then reordered so that atoms in the same bin are adjacent in the vector.`という記述がLAMMPS上のドキュメントにあるがこのベクトルというのはメモリ配列のことを指しているのだろうか？
+      - この並べ替え作業については`atom_modify`コマンドで有効化、無効化できる。
+        - 無効化する必要性は？
+        - `atom_modify`ドキュメントの中には書かれていないけど、` As a general rule, sorting is typically more effective at speeding up simulations of liquids as opposed to solids. `と書かれているから粒子の変位量が大きい流体で効果があるのかもしれない
+    - おそらくLAMMPSの`Half Neighbor List`は異なる意味で使われている
+      - Processor≒Sub-domain>binの順？
+        - ProcessorはMPIから定義されるもので、sub-domainはprocessorが持つ解析領域的なもの
+          - sub-domainは必ずしも全体の解析領域(entire domain)と平行である必要はない
+        - binは解析用の格子みたいなもの？
+          - 全ての粒子タイプのペアのカットオフ半径の最大値の半分が格子サイズとなる。
+      - [この図](https://docs.lammps.org/Developer_par_neigh.html#id1)の中には本来は粒子が書かれていたのでは？
+      - 全ての相互作用の数は $\ _nC_2$ なので近傍リストは総当たりで計算した際の半分で良い
+      - だから「half」という文字が含まれる
+      - 粒子の範囲が含まれるような最小の格子の選択がステンシルに相当する
+![stencil](../img/Shire%20et%20al.%2C%202020.jpg)
+    - 以上のことを考えると上記のエラーメッセージは`half neighbor list`を使用していないことが問題となっている？
 
 ## TODO
 1. 既往文献をあたる(国内でDEMをやられている先生はかなりいる、筑波大松島先生、土研大坪先生)
